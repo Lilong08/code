@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from joblib import parallel_backend
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.cluster import AgglomerativeClustering
@@ -206,7 +207,7 @@ class KMedoids(object):
                 ax.scatter(X_c[:, 0], X_c[:, 1], c=colors[i], alpha=0.5, s=30)
                 ax.scatter(X[centers[i], 0], X[centers[i], 1], c=colors[i], alpha=1., s=250, marker='*')
             plt.show()
-        return labels
+        return labels, centers
 
     def get_init_centers(self, n_clusters, n_samples):
         '''return random points as initial centers'''
@@ -277,6 +278,112 @@ class KMedoids(object):
         return members, costs, np.sum(costs), dist_mat
 
 
+
+
+class kmedoids(object):
+    '''
+    kmedoids clustering
+    Parameters
+    --------
+        n_clusters: number of clusters
+        metric : distance function
+        n_trials : kmedoids run times
+        max_iter: maximum number of iterations
+        tol: tolerance
+    Methods
+    -------
+        fit(X): fit the model
+            - X: 2-D numpy array, size = (n_sample, n_features)
+    Return
+    ------
+        labels:
+        centers:
+        cost:
+    '''
+    def __init__(self, k = 3, metric = 'euclidean', n_trials = 10, max_iter = 100, tol = 0.001):
+        self.n_cluster = k
+        self.metric = metric
+        self.n_trials = n_trials
+        self.max_iter = max_iter
+        self.tol = tol
+
+    def fit(self, X):
+
+        labels, centers, costs = self.kmedoids_(X, self.n_cluster, self.n_trials, self.max_iter, self.tol)
+        return (labels, centers, costs)
+
+    def get_init_centers(self, n_clsters, n_samples):
+        center_id =[]
+        while(len(center_id) < n_clsters):
+            id = np.random.randint(0, n_samples)
+            if(id not in center_id): center_id.append(id)
+        return center_id
+
+
+    def update_center(self, X, labels, n_cluster):
+        centers = []
+        costs = .0
+        # rd_choice = []
+        for i in range(n_cluster):
+            mem_id = np.where(labels == i)[0]
+            if(mem_id.shape[0] == 0): 
+                mem_id = np.random.choice(X.shape[0], size = 1)
+            
+            members = X[mem_id]
+            dist = pairwise_distances(members, metric = self.metric)
+            cost = np.sum(dist, axis = 1)
+            c_id = np.argmin(cost)
+            centers.append(members[c_id])
+            costs += np.sum(cost)
+
+        return centers, costs
+
+    def kmedoids_run(self, X, n_cluster, max_iter, tol):
+
+        n_samples = X.shape[0]
+        center_id = self.get_init_centers(n_cluster, n_samples)
+        print("initial centers : ", center_id)
+        centers = X[center_id]
+
+        iter = 0
+        last_cost = np.inf
+        labels = np.empty(shape = n_samples, dtype = int)
+
+        while True:
+            
+            dist_mat = pairwise_distances(X, centers, metric = self.metric)
+            labels = np.argmin(dist_mat, axis = 1)
+            cur_center, cur_cost = self.update_center(X, labels, n_cluster)
+
+            if(np.abs(last_cost - cur_cost) < tol):
+                centers = cur_center
+                break
+            last_cost = cur_cost
+            iter += 1
+            if(iter >= max_iter): break
+            
+        return centers, labels, last_cost
+
+    def kmedoids_(self, X, n_cluster, max_trials, max_iter, tol):
+        n_samples, n_features = X.shape[0], X.shape[1]
+
+        trial = 0
+        centers = np.empty(shape = (n_cluster, n_features), dtype = np.float32)
+        labels = np.empty(shape = n_samples, dtype = int)
+        cost = None
+        while trial < max_trials:
+            
+            centers_, labels_, cost_ = self.kmedoids_run(X, n_cluster, max_iter, tol)
+            if(trial == 0):
+                centers = centers_
+                labels = labels_
+                cost = cost_
+            elif(cost_ < cost):
+                centers = centers_
+                labels = labels
+                cost = cost_
+            trial += 1
+        return labels, centers, cost
 
 
 # ----------------- Hierarchical Clustering ----------------------
