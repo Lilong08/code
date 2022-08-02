@@ -17,7 +17,7 @@ import warnings
 class Kmeanspp:
     """K-Means++ Clustering Algorithm"""
 
-    def __init__(self, k, centers=None, cost=None, iter=None, labels=None, max_iter=1000):
+    def __init__(self, k, centers=None, labels=None, max_iter=10000, metric = "euclidean"):
         """Initialize Parameters"""
 
         self.max_iter = max_iter
@@ -26,6 +26,7 @@ class Kmeanspp:
         self.cost = []
         self.iter = 1
         self.labels = np.empty(1)
+        self.metric = metric
 
     def calc_distances(self, data, centers, weights):
         """Distance Matrix"""
@@ -33,7 +34,7 @@ class Kmeanspp:
         # dist : m * c
         # a中m个样本分别与c个样本的距离
         # min_distance : (m ), 与之最近的聚簇
-        distance = pairwise_distances(data, centers) ** 2
+        distance = pairwise_distances(data, centers, metric = self.metric)
         min_distance = np.min(distance, axis=1)
         D = min_distance * weights
         return D
@@ -80,69 +81,6 @@ class Kmeanspp:
         return self
 
 # -------------------- kmeans ----------------------
-def distance(flow, clusters):
-    """
-    Calculates the l2 distance between a flow and k clusters
-    :param flow: array, (m, )
-    :param clusters: numpy array of shape (k, m) where k is the # of clusters and m is the # fof dim
-    :return: numpy array of shape(k, 0) where k is the # of clusters
-    """
-    
-    distance =  np.linalg.norm(flow - clusters, axis = 1)
-    return distance
-def calc_distance(data, clusters):
-    """Distance Matrix"""
-
-    dist_mat = pairwise_distances(data, clusters)
-    return dist_mat
-
-
-def kmeans_run(flows, k, max_iter=None, dist=np.mean):
-    """
-    Calculates k-means clustering with specific metric.
-
-    :param flows: numpy array of shape (n, m), where r is the number of rows
-    :param k: number of clusters
-    :param dist: for center choose
-    :return: numpy array of shape (k, 2)
-    """
-    rows = flows.shape[0]
-    cnt = 0
-
-    distances = np.empty((rows, k))
-    # last_clusters = np.zeros((rows,))
-    last_clusters = np.ones((rows,))
-
-    np.random.seed()
-
-    # the Forgy method will fail if the whole array contains the same rows
-    clusters = flows[np.random.choice(rows, k, replace=False)]
-    # print(rows)
-    # print(clusters)
-    
-    while True:
-        # for row in range(rows):
-        #     distances[row] = distance(flows[row], clusters)
-
-        distances = calc_distance(flows, clusters)
-        nearest_clusters = np.argmin(distances, axis=1)
-
-        if (last_clusters == nearest_clusters).all():
-            print("clusters no change")
-            break
-
-        ### 确定每个簇的新质心
-
-        for cluster in range(k):
-            clusters[cluster] = dist(flows[nearest_clusters == cluster], axis=0)
-
-        last_clusters = nearest_clusters
-        cnt += 1
-        if (cnt > max_iter):
-            print("max iteration")
-            break
-
-    return last_clusters
 
 class kmeans:
     ''' kmeans for clustering '''
@@ -151,94 +89,84 @@ class kmeans:
     max_iter: max iteration numbers
     '''
 
-    def __init__(self, k, max_iter=1000):
+    def __init__(self, k, max_iter=1000, metric = "euclidean"):
         self.max_iter = max_iter
         self.k = k
+        self.metric = metric
 
     def fit(self, X):
-        labels = kmeans_run(X, self.k, self.max_iter, dist = np.mean)
+        labels = self.kmeans_run(X, self.k, self.max_iter, dist = np.mean)
         return labels
+
+    def kemans_run(self):
+        pass
+    def kmeans_run(self, flows, k, max_iter=None, dist=np.mean):
+        """
+        Calculates k-means clustering with specific metric.
+
+        :param flows: numpy array of shape (n, m), where r is the number of rows
+        :param k: number of clusters
+        :param dist: for center choose
+        :return: numpy array of shape (k, 2)
+        """
+        rows = flows.shape[0]
+        cnt = 0
+
+        distances = np.empty((rows, k))
+        # last_clusters = np.zeros((rows,))
+        last_clusters = np.ones((rows,))
+
+        np.random.seed()
+
+        # the Forgy method will fail if the whole array contains the same rows
+        clusters = flows[np.random.choice(rows, k, replace=False)]
+        # print(rows)
+        # print(clusters)
+        
+        while True:
+            # for row in range(rows):
+            #     distances[row] = distance(flows[row], clusters)
+
+            distances = self.calc_distance(flows, clusters)
+            nearest_clusters = np.argmin(distances, axis=1)
+
+            if (last_clusters == nearest_clusters).all():
+                print("clusters no change")
+                break
+
+            ### 确定每个簇的新质心
+
+            for cluster in range(k):
+                clusters[cluster] = dist(flows[nearest_clusters == cluster], axis=0)
+
+            last_clusters = nearest_clusters
+            cnt += 1
+            if (cnt > max_iter):
+                print("max iteration")
+                break
+
+        return last_clusters
+
+    def distance(self, flow, clusters):
+        """
+        Calculates the l2 distance between a flow and k clusters
+        :param flow: array, (m, )
+        :param clusters: numpy array of shape (k, m) where k is the # of clusters and m is the # fof dim
+        :return: numpy array of shape(k, 0) where k is the # of clusters
+        """
+        
+        distance =  np.linalg.norm(flow - clusters, axis = 1)
+        return distance
+
+    def calc_distance(self, data, clusters):
+        """Distance Matrix"""
+
+        dist_mat = pairwise_distances(data, clusters, metric = self.metric)
+        return dist_mat
+
 
 
 # ----------------- k-medoids ----------------------
-
-def get_init_centers(n_clusters, n_samples):
-    '''return random points as initial centers'''
-    init_ids = []
-    while len(init_ids) < n_clusters:
-        _ = np.random.randint(0, n_samples)
-        if not _ in init_ids:
-            init_ids.append(_)
-    return init_ids
-
-
-def get_distance(data1, data2):
-    '''example distance function'''
-    return np.sqrt(np.sum((data1 - data2) ** 2))
-
-
-def get_cost(X, centers_id, dist_func):
-    '''return total cost and cost of each cluster'''
-    st = time.time()
-    dist_mat = np.zeros((len(X), len(centers_id)))
-    # compute distance matrix
-    for j in range(len(centers_id)):
-        center = X[centers_id[j], :]
-        for i in range(len(X)):
-            if i == centers_id[j]:
-                dist_mat[i, j] = 0.
-            else:
-                dist_mat[i, j] = dist_func(X[i, :], center)
-    # print 'cost ', -st+time.time()
-    mask = np.argmin(dist_mat, axis=1)
-    members = np.zeros(len(X))
-    costs = np.zeros(len(centers_id))
-    for i in range(len(centers_id)):
-        mem_id = np.where(mask == i)
-        members[mem_id] = i
-        costs[i] = np.sum(dist_mat[mem_id, i])
-    return members, costs, np.sum(costs), dist_mat
-
-
-def kmedoids_run(X, n_clusters, dist_func, max_iter=1000, tol=0.001, verbose=True):
-    '''run algorithm return centers, members, and etc.'''
-    # Get initial centers
-    n_samples, n_features = X.shape
-    init_ids = get_init_centers(n_clusters, n_samples)
-    if verbose:
-        print(
-        'Initial centers are ', init_ids)
-    centers = init_ids
-    members, costs, tot_cost, dist_mat = get_cost(X, init_ids, dist_func)
-    cc, SWAPED = 0, True
-    while True:
-        SWAPED = False
-        for i in range(n_samples):
-            if not i in centers:
-                for j in range(len(centers)):
-                    centers_ = deepcopy(centers)
-                    centers_[j] = i
-                    members_, costs_, tot_cost_, dist_mat_ = get_cost(X, centers_, dist_func)
-                    if tot_cost_ - tot_cost < tol:
-                        members, costs, tot_cost, dist_mat = members_, costs_, tot_cost_, dist_mat_
-                        centers = centers_
-                        SWAPED = True
-                        # if verbose:
-                        #     print(
-                        #     'Change centers to ', centers)
-        if cc > max_iter:
-            if verbose:
-                print(
-                'max iteration', max_iter)
-            break
-        if not SWAPED:
-            if verbose:
-                print(
-                'clusters no change')
-            break
-        cc += 1
-    return centers, members, costs, tot_cost, dist_mat
-
 
 class KMedoids(object):
     '''
@@ -256,14 +184,16 @@ class KMedoids(object):
 
     '''
 
-    def __init__(self, n_clusters, dist_func=get_distance, max_iter=5000, tol=0.0001):
+    def __init__(self, n_clusters, max_iter=5000, metric = "euclidean", tol=0.0001):
         self.n_clusters = n_clusters
-        self.dist_func = dist_func
+        self.dist_func = None
         self.max_iter = max_iter
         self.tol = tol
+        self.metric = metric
 
     def fit(self, X, plotit=False, verbose=True):
-        centers, labels, costs, tot_cost, dist_mat = kmedoids_run(
+        self.dist_func = self.get_distance
+        centers, labels, costs, tot_cost, dist_mat = self.kmedoids_run(
             X, self.n_clusters, self.dist_func, max_iter=self.max_iter, tol=self.tol, verbose=verbose)
         # print(labels)
         if plotit:
@@ -278,6 +208,90 @@ class KMedoids(object):
                 ax.scatter(X[centers[i], 0], X[centers[i], 1], c=colors[i], alpha=1., s=250, marker='*')
             plt.show()
         return labels
+
+    def get_init_centers(self, n_clusters, n_samples):
+        '''return random points as initial centers'''
+        init_ids = []
+        while len(init_ids) < n_clusters:
+            _ = np.random.randint(0, n_samples)
+            if not _ in init_ids:
+                init_ids.append(_)
+        return init_ids
+
+    def kmedoids_run(self, X, n_clusters, dist_func, max_iter=1000, tol=0.001, verbose=True):
+        '''run algorithm return centers, members, and etc.'''
+        # Get initial centers
+        n_samples, n_features = X.shape
+        init_ids = self.get_init_centers(n_clusters, n_samples)
+        if verbose:
+            print(
+            'Initial centers are ', init_ids)
+        centers = init_ids
+        members, costs, tot_cost, dist_mat = self.get_cost(X, init_ids, dist_func)
+        cc, SWAPED = 0, True
+        while True:
+            SWAPED = False
+            for i in range(n_samples):
+                if not i in centers:
+                    for j in range(len(centers)):
+                        centers_ = deepcopy(centers)
+                        centers_[j] = i
+                        members_, costs_, tot_cost_, dist_mat_ = self.get_cost(X, centers_, dist_func)
+                        if tot_cost_ - tot_cost < tol:
+                            members, costs, tot_cost, dist_mat = members_, costs_, tot_cost_, dist_mat_
+                            centers = centers_
+                            SWAPED = True
+                            # if verbose:
+                            #     print(
+                            #     'Change centers to ', centers)
+            if cc > max_iter:
+                if verbose:
+                    print(
+                    'max iteration', max_iter)
+                break
+            if not SWAPED:
+                if verbose:
+                    print(
+                    'clusters no change')
+                break
+            cc += 1
+        return centers, members, costs, tot_cost, dist_mat
+    
+    def get_distance(self, data1, data2):
+        '''example distance function'''
+        if(self.metric == "euclidean"):
+            return np.sqrt(np.sum((data1 - data2) ** 2))
+        elif(self.metric == "cosine"):
+            norm = np.linalg.norm(data1)*np.linalg.norm(data2)
+            if(norm == 0): return 1.0
+            else: return data1.dot(data2)/norm
+        else:
+            raise NotImplementedError
+    
+    def get_cost(self, X, centers_id, dist_func):
+        '''return total cost and cost of each cluster'''
+        st = time.time()
+        dist_mat = np.zeros((len(X), len(centers_id)))
+        # compute distance matrix
+        for j in range(len(centers_id)):
+            center = X[centers_id[j], :]
+            for i in range(len(X)):
+                if i == centers_id[j]:
+                    dist_mat[i, j] = 0.
+                else:
+                    dist_mat[i, j] = dist_func(X[i, :], center)
+        # print 'cost ', -st+time.time()
+        mask = np.argmin(dist_mat, axis=1)
+        members = np.zeros(len(X))
+        costs = np.zeros(len(centers_id))
+        for i in range(len(centers_id)):
+            mem_id = np.where(mask == i)
+            members[mem_id] = i
+            costs[i] = np.sum(dist_mat[mem_id, i])
+        return members, costs, np.sum(costs), dist_mat
+
+
+
 
 # ----------------- Hierarchical Clustering ----------------------
 class agg_clustering:
