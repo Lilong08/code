@@ -51,7 +51,6 @@ data += 1.0
 train_x =  scale.fit(data)
 
 
-
 def plot_res(X = None, out = None, K = 3):
     # colors = ['r', 'g', 'b', 'c', 'm', 'y', 'k', 'b', 'g', 'r']
     colors = cycle('bgrcmykbgrcmykbgrcmykbgrcmyk')
@@ -67,27 +66,31 @@ def plot_res(X = None, out = None, K = 3):
 
 
 
+print("kmeans")
+t1 = kmeans(3, max_iter = 10000, metric = 'cosine')
+out1 = t1.fit(train_x)
+plot_res(train_x, out1, K = 3)
+score1 = silhouette_score(train_x, out1)
+print(score1)
 
-# t1 = kmeans(3, max_iter = 10000)
-# out1 = t1.fit(train_x)
-# plot_res(train_x, out1, K = 3)
-# score1 = silhouette_score(train_x, out1)
-# print(score1)
-
-# t2 = KMedoids(3, max_iter = 10000)
+# print("kmedoids")
+# t2 = KMedoids(3, max_iter = 10000, metric = 'cosine', tol = 0.001)
 # out2 = t2.fit(train_x)
 # plot_res(train_x, out2, K = 3)
 # score2 = silhouette_score(train_x, out2)
 # print(score2)
 
-# clu = 3
-# t3 = Kmeanspp(k = clu, max_iter=10000)
-# out3 = t3.fit(train_x).labels
-# plot_res(train_x, out3, K = clu)
-# score3 = silhouette_score(train_x, out3)
-# print(score3)
+print("kmeans++")
+clu = 3
+t3 = Kmeanspp(k = clu, max_iter=10000, metric = 'euclidean')
+out3 = t3.fit(train_x).labels
+print(t3.cost)
+plot_res(train_x, out3, K = clu)
+score3 = silhouette_score(train_x, out3)
+print(score3)
 
 
+print("agg")
 t4 = agg_clustering()
 out4 = t4.fit(train_x)
 out4_ = t4.cluster_merge(train_x, out4, threshold = 0.1)
