@@ -85,6 +85,7 @@ class Kmeanspp:
 
 class kmeans:
     ''' kmeans for clustering '''
+    
     '''
     k: cluster number
     max_iter: max iteration numbers
@@ -308,7 +309,6 @@ class kmedoids(object):
         self.tol = tol
 
     def fit(self, X):
-
         labels, centers, costs = self.kmedoids_(X, self.n_cluster, self.n_trials, self.max_iter, self.tol)
         return (labels, centers, costs)
 
@@ -339,10 +339,9 @@ class kmedoids(object):
         return centers, costs
 
     def kmedoids_run(self, X, n_cluster, max_iter, tol):
-
         n_samples = X.shape[0]
         center_id = self.get_init_centers(n_cluster, n_samples)
-        print("initial centers : ", center_id)
+        # print("initial centers : ", center_id)
         centers = X[center_id]
 
         iter = 0
@@ -350,12 +349,12 @@ class kmedoids(object):
         labels = np.empty(shape = n_samples, dtype = int)
 
         while True:
-            
             dist_mat = pairwise_distances(X, centers, metric = self.metric)
             labels = np.argmin(dist_mat, axis = 1)
             cur_center, cur_cost = self.update_center(X, labels, n_cluster)
 
             if(np.abs(last_cost - cur_cost) < tol):
+                # diff is smaller the par tol, then accept new center
                 centers = cur_center
                 break
             last_cost = cur_cost
@@ -366,13 +365,12 @@ class kmedoids(object):
 
     def kmedoids_(self, X, n_cluster, max_trials, max_iter, tol):
         n_samples, n_features = X.shape[0], X.shape[1]
-
         trial = 0
         centers = np.empty(shape = (n_cluster, n_features), dtype = np.float32)
         labels = np.empty(shape = n_samples, dtype = int)
         cost = None
+
         while trial < max_trials:
-            
             centers_, labels_, cost_ = self.kmedoids_run(X, n_cluster, max_iter, tol)
             if(trial == 0):
                 centers = centers_
@@ -383,6 +381,7 @@ class kmedoids(object):
                 labels = labels
                 cost = cost_
             trial += 1
+
         return labels, centers, cost
 
 
@@ -391,17 +390,9 @@ class agg_clustering:
     '''
     Agglomerative Hierarchical Clustering
 
-    affinity = euclidean
-    (euclidean: 欧式距离
-    minkowski: 明氏距离
-    chebyshev: 切比雪夫距离
-    canberra: 堪培拉距离)
+    affinity = euclidean (cosine)
 
     linkage = ward
-    (single: MIN
-    ward: 沃德方差最小化
-    average: UPGMA
-    complete: MAX)
 
     '''
     def __init__(self, aff = 'euclidean', link = 'ward', dist_threshold = 3.0, n_cluster = None):
