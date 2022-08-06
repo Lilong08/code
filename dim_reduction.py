@@ -3,7 +3,14 @@ import numpy as np
 from sklearn.datasets import load_iris
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
+from sklearn.decomposition import FastICA
 
+
+
+def ica(data, n_dim, max_iter = 1000, tol = 0.001, whiten = None):
+    transformer=FastICA(n_components=n_dim, whiten='unit-variance', max_iter=max_iter, tol=tol)
+    train_x = transformer.fit_transform(data)
+    return train_x
 
 def pca(data, n_dim):
     '''
