@@ -1,20 +1,11 @@
-import secrets
 import numpy as np
 from pyparsing import col
 from sklearn.metrics import pairwise_distances
-import pandas as pd
 from scipy.io import arff
 import pandas as pd 
-import matplotlib.pyplot as plt
-from scaler import my_scaler
-from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_score
-import pickle
-from itertools import cycle
-from scaler import my_scaler
-from model import Kmeanspp, KMedoids, kmeans, agg_clustering
-from dim_reduction import pca
-
+from model import Kmeanspp, KMedoids, kmeans, agg_clustering, kmedoids
+from utils import *
 
 # file_name='data/User Groups Dataset-131atts.arff'
 # data, meta=arff.loadarff(file_name)
@@ -30,77 +21,71 @@ from dim_reduction import pca
 #     label.append(i[-1])
 
 # label = np.array([group[i] for i in label])
+# for i in range(3):
+#     print(len(label[label == i]))
 # train_x_ori = np.array(train_x, dtype = np.float32)
-# scale = StandardScaler()
-# train_x = scale.fit_transform(train_x_ori)
+
+# # scale = StandardScaler()
+# # train_x = scale.fit_transform(train_x_ori)
+
+# scale = my_scaler()
+# data = 1.0 + train_x_ori 
+# train_x =  scale.fit(data)
 
 
-file = open("data/new_matrix.pkl", "rb")
+file =  "data/new_matrix.pkl"
 
-data = pickle.load(file)
-mapping = data["mapping1"]
-data = data["matrix"]
-
-file.close()
-
-# scale = StandardScaler()
-# train_x = scale.fit_transform(data)
-train_x = pca(data, 20)
-scale = my_scaler()
-data += 1.0
-train_x =  scale.fit(data)
+data, mapping = read_data(file)
 
 
-def plot_res(X = None, out = None, K = 3):
-    # colors = ['r', 'g', 'b', 'c', 'm', 'y', 'k', 'b', 'g', 'r']
-    colors = cycle('bgrcmykbgrcmykbgrcmykbgrcmyk')
-    X = train_x
-    ax = plt.figure().subplots(1, 1)
-    ax1 = ax
-    for k, color in zip(range(K), colors):
-        data = X[np.where(out == k)[0], :]
-        print(data.shape[0])
-        x, y = data[:, 0], data[:, 1]
-        ax1.scatter(x, y, c=color)
-    plt.show()
+train_x = _ica(data, n_dim = 30)
+# train_x = _truncatedSVD(data, n_dim=10)
 
 
 
+clu = 3
 print("kmeans")
-t1 = kmeans(3, max_iter = 10000, metric = 'cosine')
+t1 = kmeans(clu, max_iter = 10000, metric = 'cosine')
 out1 = t1.fit(train_x)
-plot_res(train_x, out1, K = 3)
+plot_res(train_x, out1, K = clu)
 score1 = silhouette_score(train_x, out1)
 print(score1)
 
-# print("kmedoids")
-# t2 = KMedoids(3, max_iter = 10000, metric = 'cosine', tol = 0.001)
-# out2 = t2.fit(train_x)
-# plot_res(train_x, out2, K = 3)
-# score2 = silhouette_score(train_x, out2)
-# print(score2)
+# # print("kmedoids")
+# # t2 = KMedoids(3, max_iter = 10000, metric = 'cosine', tol = 0.001)
+# # out2, cen = t2.fit(train_x)
+# # plot_res(train_x, out2, K = 3)
+# # score2 = silhouette_score(train_x, out2)
+# # print(score2)
+# # print(cen)
+
+print("kmedoids")
+t2 = kmedoids(clu, metric = 'cosine', n_trials = 100, max_iter = 1000, tol = 0.01)
+out2, _, _ = t2.fit(train_x)
+plot_res(train_x, out2, K = clu)
+score2 = silhouette_score(train_x, out2)
+print(score2)
 
 print("kmeans++")
-clu = 3
 t3 = Kmeanspp(k = clu, max_iter=10000, metric = 'euclidean')
 out3 = t3.fit(train_x).labels
-print(t3.cost)
+
 plot_res(train_x, out3, K = clu)
 score3 = silhouette_score(train_x, out3)
 print(score3)
 
 
-print("agg")
-t4 = agg_clustering()
-out4 = t4.fit(train_x)
-out4_ = t4.cluster_merge(train_x, out4, threshold = 0.1)
-score4 = silhouette_score(train_x, out4)
-score4_ = silhouette_score(train_x, out4_)
-t4.plot_res(train_x, out4_)
-print(np.unique(out4).shape[0])
-print(np.unique(out4_).shape[0])
-print(score4)
-print(score4_)
+# print("agg")
+# t4 = agg_clustering()
+# out4 = t4.fit(train_x)
+# out4_ = t4.cluster_merge(train_x, out4, threshold = 0.1)
+# score4 = silhouette_score(train_x, out4)
+# score4_ = silhouette_score(train_x, out4_)
+# t4.plot_res(train_x, out4_)
+# print(np.unique(out4).shape[0])
+# print(np.unique(out4_).shape[0])
+# print(score4)
+# print(score4_)
 
 
 # out1 = pd.DataFrame(out1)

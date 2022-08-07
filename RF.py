@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
+
 # # Importing the datasets
 
 #TODO: read the datasets
@@ -25,11 +26,11 @@ x_train = sc_X.fit_transform(x_train)
 x_test = sc_X.transform(x_test)
 
 
-from scaler import my_scaler
+from utils import log_scale
 # Log scaling
-log_scaling = my_scaler()
-x_train = log_scaling.fit(x_train)
-x_test = log_scaling.fit(x_test)
+
+x_train = log_scale(x_train)
+x_test = log_scale(x_test)
 
 
 # Fitting the classifier into the Training set

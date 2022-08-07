@@ -72,26 +72,30 @@ from typing import List, Dict, Set, Any
 
 
 
-class A:
-    def __init__(self) -> None:
-        self.a = 1
-        self.b = 2
-    def __getattr__(self, __name):
-        print("1")
-        print(__name)
-    # def __getattribute__(self, __name: str) -> Any:
-    #     print("asd")
+# class A:
+#     def __init__(self) -> None:
+#         self.a = 1
+#         self.b = 2
+#     def __getattr__(self, __name):
+#         print("%s is not callable!"%__name)
+#     def __getattribute__(self, __name: str) -> Any:
+#         print("%s is called!"%__name)
         
-    def func(self)->Any:
-        print("for test")
+#     def func(self) -> Any:
+#         print("test")
         
-        
+# obj = A()
+# print(obj.bb)
+# print(obj.a)
+
+  
 class dataset:
     def __init__(self, file_path):
         X = np.random.randint(1, 100, (14,4))
         y = np.random.randint(1, 100, (14,))
         self.train = X
         self.label = y
+        self.idx = 0
     
     def __len__(self):
         assert len(self.train) == len(self.label)
@@ -101,6 +105,11 @@ class dataset:
         assert key < len(self)
         return self.train[key], self.label[key]
 
+    def __next__(self):
+        assert self.idx < len(self)
+        tmp = self.label[self.idx]
+        self.idx += 1
+        return tmp
     # def __iter__(self):
     #     l = len(self)
 
@@ -121,17 +130,55 @@ class dataset:
 
 
 
-def sq():
-    for x in range(4):
-        yield x**2
+
+# ds = dataset("")
+# print(ds.label)
+# for i in range(15):
+#     print(next(ds))
+
+# def sq():
+#     for x in range(4):
+#         c = yield x**2
+#     print(type(c))
+# dl = dataset("")
 
 
-# dl = dataset(" ")
-# a = iter(range(3, 5))
-# print(a)
 # print(dl)
 
-b = sq()
-print(b)
-for i in b:
-    print(i)
+# b = sq()
+# print(b)
+# for i in b:
+#     print(i)
+
+# l = [1,2,3]
+
+# ll = iter(l)
+# for i in range(3):
+#     print(next(ll))
+
+# def fun(n : int):
+#     for i in range(n):
+#         yield (i + 2, "ss")
+#     print("sfsd")
+
+# f = fun(10)
+# for i in f:
+#     print(i)
+
+
+# a = np.array([[0,0,0],[2,2,4],[2,3,1]])
+
+# dist = pairwise_distances(a, metric='cosine')
+# print(np.argmin(dist, axis = 1))
+# print(dist)
+
+x = np.linspace(-10, 10, 100)
+y = 1/(1 + np.e**(-x))
+
+import matplotlib.pyplot as plt
+
+
+ax = plt.figure().subplots(1, 1)
+
+ax.scatter(x, y)
+plt.show()

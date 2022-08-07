@@ -18,15 +18,13 @@ import warnings
 class Kmeanspp:
     """K-Means++ Clustering Algorithm"""
 
-    def __init__(self, k, centers=None, labels=None, max_iter=10000, metric = "euclidean"):
+    def __init__(self, k, max_iter=10000, metric = "euclidean"):
         """Initialize Parameters"""
 
         self.max_iter = max_iter
         self.k = k
-        self.centers = np.empty(1)
         self.cost = []
         self.iter = 1
-        self.labels = np.empty(1)
         self.metric = metric
 
     def calc_distances(self, data, centers, weights):
@@ -85,7 +83,7 @@ class Kmeanspp:
 
 class kmeans:
     ''' kmeans for clustering '''
-    
+
     '''
     k: cluster number
     max_iter: max iteration numbers
@@ -165,7 +163,6 @@ class kmeans:
 
         dist_mat = pairwise_distances(data, clusters, metric = self.metric)
         return dist_mat
-
 
 
 # ----------------- k-medoids ----------------------
@@ -277,9 +274,6 @@ class KMedoids(object):
             members[mem_id] = i
             costs[i] = np.sum(dist_mat[mem_id, i])
         return members, costs, np.sum(costs), dist_mat
-
-
-
 
 class kmedoids(object):
     '''
