@@ -34,14 +34,10 @@ from utils import *
 
 
 file =  "data/new_matrix.pkl"
-
 data, mapping = read_data(file)
-
 
 train_x = _ica(data, n_dim = 30)
 # train_x = _truncatedSVD(data, n_dim=10)
-
-
 
 clu = 3
 print("kmeans")

@@ -7,12 +7,11 @@ from sklearn.preprocessing import StandardScaler
 import pickle
 from itertools import cycle
 from sklearn.manifold import TSNE
-from sklearn.decomposition import TruncatedSVD
-from sklearn.decomposition import FastICA
+from sklearn.decomposition import TruncatedSVD, FastICA, PCA
 
 
 
-__all__ = ['read_data', 'log_scale', 'std_scale', '_ica', '_tsne', '_truncatedSVD', 'plot_res']
+__all__ = ['read_data', 'log_scale', 'std_scale', '_ica', '_tsne', '_truncatedSVD', 'plot_res', 'pca', '_pca']
 
 def read_data(file_path):
     with open(file_path, "rb") as f:
@@ -65,10 +64,37 @@ def _tsne(X, n_dim, n_iter = 1000, lr = 'auto'):
 def _truncatedSVD(X, n_dim, n_iter = 1000, random_state=43):
     '''
     TruncatedSVD dimensionality reduction
-    X: inpurt raw data, size = (n_samples, n_features)
+    X: input raw data, size = (n_samples, n_features)
     '''
     _X = TruncatedSVD(n_components=n_dim, n_iter=n_iter, random_state=random_state).fit_transform(X)
     return _X
+
+def _pca(X, n_dim):
+    '''
+    pcm dimensionality reduction
+    X: input raw data, size = (n_samples, n_features)
+    '''
+    _X = PCA(n_components=n_dim)
+    return _X
+
+def pca(data, n_dim):
+    '''
+    pca is O(D^3)
+    data: (n_samples, n_features(D))
+    :param n_dim: target dimensions
+    :return: (n_samples, n_dim)
+    '''
+    data = data - np.mean(data, axis = 0, keepdims = True)
+
+    cov = np.dot(data.T, data)
+
+    eig_values, eig_vector = np.linalg.eig(cov)
+    # print(eig_values)
+    indexs_ = np.argsort(-eig_values)[:n_dim]
+    picked_eig_values = eig_values[indexs_]
+    picked_eig_vector = eig_vector[:, indexs_]
+    data_ndim = np.dot(data, picked_eig_vector)
+    return data_ndim
 
 def plot_res(X = None, label = None, K = 3, tsne = False):
     '''
