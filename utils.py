@@ -7,11 +7,11 @@ from sklearn.preprocessing import StandardScaler
 import pickle
 from itertools import cycle
 from sklearn.manifold import TSNE
-from sklearn.decomposition import TruncatedSVD, FastICA, PCA
+from sklearn.decomposition import TruncatedSVD, FastICA, PCA, NMF
 
 
 
-__all__ = ['read_data', 'log_scale', 'std_scale', '_ica', '_tsne', '_truncatedSVD', 'plot_res', 'pca', '_pca']
+__all__ = ['read_data', 'log_scale', 'std_scale', '_ica', '_tsne', '_truncatedSVD', '_nmf', 'plot_res', 'pca', '_pca']
 
 def read_data(file_path):
     with open(file_path, "rb") as f:
@@ -60,6 +60,18 @@ def _tsne(X, n_dim, n_iter = 1000, lr = 'auto'):
     '''
     _X = TSNE(n_components = n_dim,n_iter = n_iter , learning_rate = lr).fit_transform(X)
     return _X
+
+def _nmf(X, n_dim, random_state = 0):
+    '''
+    NMF dimensionality reduction
+    X: input raw data, size = (n_samples, n_features)
+    n_dim: keeped dim
+    return: W, size = (n_samples, n_dim)
+    '''
+    nmf = NMF(n_components=n_dim, random_state=random_state)
+    W = nmf.fit_transform(X)
+    H = nmf.components_
+    return W
 
 def _truncatedSVD(X, n_dim, n_iter = 1000, random_state=43):
     '''
@@ -124,6 +136,6 @@ def plot_res(X = None, label = None, K = 3, tsne = False):
 
 def elbow_method(cost, K):
     k = None
-    
+
     return k
 
