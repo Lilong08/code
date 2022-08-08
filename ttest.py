@@ -1,7 +1,4 @@
-from cProfile import label
-from re import S
 from time import sleep
-from tkinter import N
 import numpy as np
 from sklearn.metrics import pairwise_distances
 from itertools import cycle
@@ -172,13 +169,19 @@ class dataset:
 # print(np.argmin(dist, axis = 1))
 # print(dist)
 
-x = np.linspace(-10, 10, 100)
-y = 1/(1 + np.e**(-x))
+# x = np.linspace(-10, 10, 100)
+# y = 1/(1 + np.e**(-x))
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 
-ax = plt.figure().subplots(1, 1)
+# ax = plt.figure().subplots(1, 1)
 
-ax.scatter(x, y)
-plt.show()
+# ax.scatter(x, y)
+# plt.show()
+
+x = np.random.randint(1,100,(3,10))
+y = np.random.randint(1,100, (1, 10))
+
+dist = pairwise_distances(x, y)
+print(dist.shape)
