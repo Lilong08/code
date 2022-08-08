@@ -74,7 +74,7 @@ def _pca(X, n_dim):
     pcm dimensionality reduction
     X: input raw data, size = (n_samples, n_features)
     '''
-    _X = PCA(n_components=n_dim)
+    _X = PCA(n_components=n_dim).fit_transform(X)
     return _X
 
 def pca(data, n_dim):
