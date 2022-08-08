@@ -124,5 +124,6 @@ def plot_res(X = None, label = None, K = 3, tsne = False):
 
 def elbow_method(cost, K):
     k = None
+    
     return k
 
