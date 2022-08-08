@@ -64,6 +64,8 @@ class Kmeanspp:
             self.labels = np.argmin(distance, axis=1)
             centers_new = np.array([np.mean(data[self.labels == i], axis=0) for i in np.unique(self.labels)])
 
+            
+
             # sanity check
             if (np.all(self.centers == centers_new)): 
                 print("clusters no change")
@@ -77,7 +79,7 @@ class Kmeanspp:
         # convergence check
         if (sum(np.min(pairwise_distances(data, self.centers), axis=1)) != self.cost[-1]):
             warnings.warn("Algorithm Did Not Converge In {} Iterations".format(self.max_iter))
-        return self
+        return self.labels, self.cost[-1]
 
 # -------------------- kmeans ----------------------
 
@@ -85,7 +87,7 @@ class kmeans:
     ''' kmeans for clustering '''
 
     '''
-    k: cluster number
+    k: number of clusters
     max_iter: max iteration numbers
     '''
 
@@ -93,13 +95,12 @@ class kmeans:
         self.max_iter = max_iter
         self.k = k
         self.metric = metric
+        self.cost = .0
 
     def fit(self, X):
         labels = self.kmeans_run(X, self.k, self.max_iter, dist = np.mean)
         return labels
 
-    def kemans_run(self):
-        pass
     def kmeans_run(self, flows, k, max_iter=None, dist=np.mean):
         """
         Calculates k-means clustering with specific metric.
@@ -135,16 +136,17 @@ class kmeans:
                 break
 
             ### 确定每个簇的新质心
-
+            _cost = np.zeros((k))
             for cluster in range(k):
                 clusters[cluster] = dist(flows[nearest_clusters == cluster], axis=0)
+                _cost[cluster] = np.sum(self.calc_distance(flows[nearest_clusters == cluster], clusters=[clusters[cluster]]))
 
             last_clusters = nearest_clusters
             cnt += 1
             if (cnt > max_iter):
                 print("max iteration")
                 break
-
+        self.cost = np.sum(_cost)
         return last_clusters
 
     def distance(self, flow, clusters):
@@ -280,7 +282,7 @@ class kmedoids(object):
     kmedoids clustering
     Parameters
     --------
-        n_clusters: number of clusters
+        K: number of clusters
         metric : distance function
         n_trials : kmedoids run times
         max_iter: maximum number of iterations
@@ -328,7 +330,8 @@ class kmedoids(object):
             cost = np.sum(dist, axis = 1)
             c_id = np.argmin(cost)
             centers.append(members[c_id])
-            costs += np.sum(cost)
+            _cost = np.sum(pairwise_distances(members, [members[c_id]], metric = self.metric))
+            costs += _cost
 
         return centers, costs
 
@@ -401,8 +404,8 @@ class agg_clustering:
         labels = self.trainer.fit_predict(X)
         return labels
     
-    def cluster_merge(self, X, labels, threshold = 0.0001):
-        # cluster mergin from nsdi22
+    def cluster_merge(self, X, labels, threshold = 0.001):
+        # cluster merge from nsdi22
         
         res = labels
         tmp_labels = deepcopy(labels)

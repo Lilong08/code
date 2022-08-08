@@ -122,5 +122,7 @@ def plot_res(X = None, label = None, K = 3, tsne = False):
         ax.scatter(x, y, c = color, marker = sp)
     plt.show()
 
-
+def elbow_method(cost, K):
+    k = None
+    return k
 
