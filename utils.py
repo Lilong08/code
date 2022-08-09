@@ -112,7 +112,7 @@ def pca(data, n_dim):
     data_ndim = np.dot(data, picked_eig_vector)
     return data_ndim
 
-def plot_res(X = None, label = None, K = 3, tsne = False):
+def plot_res(X = None, label = None, K = 3, tsne = False, save = False, alg=None):
     '''
     plot the clustering results
     X: input data, size = (n_samples, n_features)
@@ -131,12 +131,12 @@ def plot_res(X = None, label = None, K = 3, tsne = False):
     ax = plt.figure().subplots(1, 1)
     for k, color, sp in zip(range(K), colors, shape):
         data = _X[np.where(label == k)[0], :]
-        
         print(data.shape[0])
         
         x, y = data[:, 0], data[:, 1]
         ax.scatter(x, y, c = color, marker = sp)
-    plt.show()
+    if not save: plt.show()
+    else: plt.savefig('fig/'+alg+str(K)+'.png')
 
 def elbow_method(cost, K):
     k = None
