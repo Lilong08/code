@@ -308,6 +308,29 @@ class kmedoids(object):
         labels, centers, costs = self.kmedoids_(X, self.n_cluster, self.n_trials, self.max_iter, self.tol)
         return (labels, centers, costs)
 
+    def calc_distances(self, data, centers, weights):
+        # a : m * n, b : c * n
+        # dist : m * c
+        # a中m个样本分别与c个样本的距离
+        # min_distance : (m ), 与之最近的聚簇
+        distance = pairwise_distances(data, centers, metric = self.metric)
+        min_distance = np.min(distance, axis=1)
+        D = min_distance * weights
+        return D
+
+    def _get_init_centers(self, data, k, weights):
+        '''
+        initial center from kmeans++
+        '''
+        centers = []
+        centers.append(random.choice(data))
+        while (len(centers) < k):
+            distances = self.calc_distances(data, centers, weights)
+            prob = distances / sum(distances)
+            c = np.random.choice(range(data.shape[0]), 1, p=prob)
+            centers.append(data[c[0]])
+        return centers
+
     def get_init_centers(self, n_clsters, n_samples):
         center_id =[]
         while(len(center_id) < n_clsters):
@@ -322,9 +345,9 @@ class kmedoids(object):
         # rd_choice = []
         for i in range(n_cluster):
             mem_id = np.where(labels == i)[0]
-            if(mem_id.shape[0] == 0): 
-                mem_id = np.random.choice(X.shape[0], size = 1)
-            
+            # if(mem_id.shape[0] == 0): 
+            #     mem_id = np.random.choice(X.shape[0], size = 1)
+            #     print("bad!")
             members = X[mem_id]
             dist = pairwise_distances(members, metric = self.metric)
             cost = np.sum(dist, axis = 1)
@@ -337,9 +360,12 @@ class kmedoids(object):
 
     def kmedoids_run(self, X, n_cluster, max_iter, tol):
         n_samples = X.shape[0]
-        center_id = self.get_init_centers(n_cluster, n_samples)
+
+        # center_id = self.get_init_centers(n_cluster, n_samples)
+        W = np.ones(n_samples)
         # print("initial centers : ", center_id)
-        centers = X[center_id]
+        # centers = X[center_id]
+        centers = self._get_init_centers(X, n_cluster, W)
 
         iter = 0
         last_cost = np.inf
@@ -348,6 +374,7 @@ class kmedoids(object):
         while True:
             dist_mat = pairwise_distances(X, centers, metric = self.metric)
             labels = np.argmin(dist_mat, axis = 1)
+            # print(np.unique(labels).shape[0])
             cur_center, cur_cost = self.update_center(X, labels, n_cluster)
 
             if(np.abs(last_cost - cur_cost) < tol):
@@ -356,7 +383,9 @@ class kmedoids(object):
                 break
             last_cost = cur_cost
             iter += 1
-            if(iter >= max_iter): break
+            if(cur_cost < last_cost): centers = cur_center
+            if(iter >= max_iter): 
+                break
             
         return centers, labels, last_cost
 
