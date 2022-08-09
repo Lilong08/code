@@ -99,7 +99,7 @@ class kmeans:
 
     def fit(self, X):
         labels = self.kmeans_run(X, self.k, self.max_iter, dist = np.mean)
-        return labels
+        return labels, self.cost
 
     def kmeans_run(self, flows, k, max_iter=None, dist=np.mean):
         """
