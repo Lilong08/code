@@ -331,12 +331,12 @@ class kmedoids(object):
             centers.append(data[c[0]])
         return centers
 
-    def get_init_centers(self, n_clsters, n_samples):
+    def get_init_centers(self, X, n_clsters, n_samples):
         center_id =[]
         while(len(center_id) < n_clsters):
             id = np.random.randint(0, n_samples)
             if(id not in center_id): center_id.append(id)
-        return center_id
+        return X[center_id]
 
 
     def update_center(self, X, labels, n_cluster):
@@ -347,14 +347,13 @@ class kmedoids(object):
             mem_id = np.where(labels == i)[0]
             # if(mem_id.shape[0] == 0): 
             #     mem_id = np.random.choice(X.shape[0], size = 1)
-            #     print("bad!")
+
             members = X[mem_id]
             dist = pairwise_distances(members, metric = self.metric)
             cost = np.sum(dist, axis = 1)
             c_id = np.argmin(cost)
             centers.append(members[c_id])
-            _cost = np.sum(pairwise_distances(members, [members[c_id]], metric = self.metric))
-            costs += _cost
+            costs += cost[c_id]
 
         return centers, costs
 
@@ -376,35 +375,29 @@ class kmedoids(object):
             labels = np.argmin(dist_mat, axis = 1)
             # print(np.unique(labels).shape[0])
             cur_center, cur_cost = self.update_center(X, labels, n_cluster)
+            # if(np.abs(last_cost - cur_cost) < tol):
+            #     # diff is smaller the par tol, then accept new center
+            #     centers = cur_center
+            #     break
 
-            if(np.abs(last_cost - cur_cost) < tol):
-                # diff is smaller the par tol, then accept new center
+            if(cur_cost < last_cost): 
                 centers = cur_center
-                break
-            last_cost = cur_cost
+                last_cost = cur_cost
             iter += 1
-            if(cur_cost < last_cost): centers = cur_center
             if(iter >= max_iter): 
                 break
-            
+        # print(iter)
         return centers, labels, last_cost
 
     def kmedoids_(self, X, n_cluster, max_trials, max_iter, tol):
-        n_samples, n_features = X.shape[0], X.shape[1]
-        trial = 0
-        centers = np.empty(shape = (n_cluster, n_features), dtype = np.float32)
-        labels = np.empty(shape = n_samples, dtype = int)
-        cost = None
 
+        trial = 0
+        centers, labels, cost = self.kmedoids_run(X, n_cluster, max_iter, tol)
         while trial < max_trials:
             centers_, labels_, cost_ = self.kmedoids_run(X, n_cluster, max_iter, tol)
-            if(trial == 0):
+            if(cost_ < cost):
                 centers = centers_
                 labels = labels_
-                cost = cost_
-            elif(cost_ < cost):
-                centers = centers_
-                labels = labels
                 cost = cost_
             trial += 1
 

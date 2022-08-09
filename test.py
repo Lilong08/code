@@ -6,9 +6,11 @@ import pandas as pd
 from sklearn.metrics import silhouette_score
 from model import Kmeanspp, KMedoids, kmeans, agg_clustering, kmedoids
 from utils import *
+import re
 
 # file_name='data/User Groups Dataset-131atts.arff'
 # data, meta=arff.loadarff(file_name)
+
 
 # # print(meta)
 # group = {b'High Consumption' : 0, b'Low Consumption' : 1, b'Medium Consumption' : 2}
@@ -35,6 +37,7 @@ from utils import *
 
 file =  "data/new_matrix.pkl"
 data, mapping = read_data(file)
+
 
 train_x = _ica(data, n_dim = 30)
 # train_x = _truncatedSVD(data, n_dim=10)
@@ -65,6 +68,7 @@ print(score2)
 print("kmeans++")
 t3 = Kmeanspp(k = clu, max_iter=10000, metric = 'euclidean')
 out3 = t3.fit(train_x).labels
+
 
 plot_res(train_x, out3, K = clu)
 score3 = silhouette_score(train_x, out3)
