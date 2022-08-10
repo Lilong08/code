@@ -4,7 +4,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.cluster import AgglomerativeClustering
 from itertools import cycle
-from sklearn.datasets import make_blobs
 from sklearn.metrics import pairwise_distances
 import numpy as np
 import random
