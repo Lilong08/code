@@ -77,7 +77,7 @@ class Kmeanspp:
                 break
 
         # convergence check
-        if (sum(np.min(pairwise_distances(data, self.centers), axis=1)) != self.cost[-1]):
+        if (sum(np.min(pairwise_distances(data, self.centers, metric = self.metric), axis=1)) != self.cost[-1]):
             warnings.warn("Algorithm Did Not Converge In {} Iterations".format(self.max_iter))
         return self.labels, self.cost[-1]
 
@@ -438,7 +438,7 @@ class agg_clustering:
             mapping = {}
             for idx, i in enumerate(labels_):
                 # calculate the centroid of each cluster
-                centeroid.append(np.mean(X[np.where(tmp_labels == i)], axis = 0))
+                centeroid.append(np.mean(X[np.where(tmp_labels == i)[0]], axis = 0))
                 mapping[idx] = i
                 
             center = np.array(centeroid)
@@ -459,8 +459,8 @@ class agg_clustering:
             x_label = mapping[x]
             y_label = mapping[y]
             
-            # merge clustes x to y
-            tmp_labels[np.where(tmp_labels == x_label)] = y_label
+            # merge cluste x to y
+            tmp_labels[np.where(tmp_labels == x_label)[0]] = y_label
             res = tmp_labels
             cnt += 1
 
