@@ -131,7 +131,8 @@ def plot_res(X = None, label = None, K = 3, tsne = False, save = False, alg=None
     ax = plt.figure().subplots(1, 1)
     for k, color, sp in zip(set(label), colors, shape):
         data = _X[np.where(label == k)[0], :]
-        # print(data.shape[0])
+        
+        print(data.shape[0])
         
         x, y = data[:, 0], data[:, 1]
         ax.scatter(x, y, c = color, marker = sp)
