@@ -37,7 +37,6 @@ def pca(data, n_dim):
 # fit n_features >> n_samples, reduce cal
 def highdim_pca(data, n_dim):
     '''
-
     when n_features(D) >> n_samples(N), highdim_pca is O(N^3)
 
     :param data: (n_samples, n_features)

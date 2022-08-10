@@ -52,17 +52,17 @@ res = []
 for clu in range(3, 11):
     kk = clu
     print("kk = ", kk)
-    t1 = kmeans(k = kk, max_iter = 1000, metric='euclidean')
-    t2 = kmedoids(kk, 'euclidean', 10, 100, tol=0.001)
-    t3 = Kmeanspp(kk, 10000, 'euclidean')
+    t1 = kmeans(k = kk, max_iter = 1000, metric='cosine')
+    t2 = kmedoids(kk, 'cosine', 10, 100, tol=0.001)
+    t3 = Kmeanspp(kk, 10000, 'cosine')
     t4 = agg_clustering(dist_threshold=0.1)
     out1, c1 = t1.fit(X)
     out2, _, c2= t2.fit(X)
     out3, c3= t3.fit(X)
 
-    # print(c1)
-    # print(c2)
-    # print(c3)
+    print(c1)
+    print(c2)
+    print(c3)
 
     # out4 = t4.fit(X)
     # print('----------agg')
@@ -71,18 +71,18 @@ for clu in range(3, 11):
     # plot_res(X, out5, K = np.unique(out5).shape[0], tsne=True)
     # X = new_data
     # print('------other')
-    plot_res(X, out1, K=kk, tsne=True, save=True, alg='kmeans')
-    plot_res(X, out2, K=kk, tsne=True, save=True, alg='kmedoids')
-    plot_res(X, out3, K=kk, tsne=True, save=True, alg='kmeans++')
+    plot_res(X, out1, K=kk, tsne=True, save=False, alg='kmeans')
+    plot_res(X, out2, K=kk, tsne=True, save=False, alg='kmedoids')
+    plot_res(X, out3, K=kk, tsne=True, save=False, alg='kmeans++')
 
     sc1 = silhouette_score(X, out1)
     sc2 = silhouette_score(X, out2)
     sc3 = silhouette_score(X, out3)
-    # print(sc1)
-    # print(sc2)
+    # # print(sc1)
+    # # print(sc2)
 
     print(sc1, sc2, sc3)
-    res.append([sc1, sc2, sc3])
+    # res.append([sc1, sc2, sc3])
 
 # df = pd.DataFrame(data=res)
 # df.to_csv('data/res.csv')

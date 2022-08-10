@@ -180,8 +180,13 @@ class dataset:
 # ax.scatter(x, y)
 # plt.show()
 
-x = np.random.randint(1,100,(3,10))
-y = np.random.randint(1,100, (1, 10))
+# x = np.random.randint(1,100,(3,10))
+# y = np.random.randint(1,100, (1, 10))
 
-dist = pairwise_distances(x, y)
-print(dist.shape)
+# dist = pairwise_distances(x)
+# sum = np.sum(dist, axis=1)
+# print(sum)
+# print(dist.shape)
+x = np.array([1,2,3,4,43,2,2,1])
+x[np.where(x==2)[0]] = 666
+print(x)
