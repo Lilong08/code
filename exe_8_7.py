@@ -49,7 +49,7 @@ X = _nmf(X, 10)
 # X, labels = make_blobs(n_samples=n_samples, centers=centers, cluster_std=1, random_state=0)
 
 res = []
-for clu in range(3, 11):
+for clu in range(3, 12):
     kk = clu
     print("kk = ", kk)
     t1 = kmeans(k = kk, max_iter = 1000, metric='cosine')
