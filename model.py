@@ -161,7 +161,7 @@ class kmeans:
 
     def calc_distance(self, data, clusters):
         """Distance Matrix"""
-
+        assert data.shape[0] > 0
         dist_mat = pairwise_distances(data, clusters, metric = self.metric)
         return dist_mat
 
