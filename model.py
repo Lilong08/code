@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+from asyncore import dispatcher_with_send
+from dis import dis
+# from math import dist
+import queue
 from joblib import parallel_backend
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -11,6 +15,57 @@ import time
 from copy import deepcopy
 import warnings
 
+from heapq import heapify, heappop, heappush, heappushpop
+import _hierarchical_fast as _hierarchical  # type: ignore
+
+
+def _hc_cut(n_clusters, children, n_leaves):
+
+    """Function cutting the ward tree for a given number of clusters.
+
+    Parameters
+    ----------
+    n_clusters : int or ndarray
+        The number of clusters to form.
+
+    children : ndarray of shape (n_nodes-1, 2)
+        The children of each non-leaf node. Values less than `n_samples`
+        correspond to leaves of the tree which are the original samples.
+        A node `i` greater than or equal to `n_samples` is a non-leaf
+        node and has children `children_[i - n_samples]`. Alternatively
+        at the i-th iteration, children[i][0] and children[i][1]
+        are merged to form node `n_samples + i`.
+
+    n_leaves : int
+        Number of leaves of the tree.
+
+    Returns
+    -------
+    labels : array [n_samples]
+        Cluster labels for each point.
+    """
+    if n_clusters > n_leaves:
+        raise ValueError(
+            "Cannot extract more clusters than samples: "
+            "%s clusters where given for a tree with %s leaves."
+            % (n_clusters, n_leaves)
+        )
+    # In this function, we store nodes as a heap to avoid recomputing
+    # the max of the nodes: the first element is always the smallest
+    # We use negated indices as heaps work on smallest elements, and we
+    # are interested in largest elements
+    # children[-1] is the root of the tree
+    nodes = [-(max(children[-1]) + 1)]
+    for _ in range(n_clusters - 1):
+        # As we have a heap, nodes[0] is the smallest element
+        these_children = children[-nodes[0] - n_leaves]
+        # Insert the 2 children and remove the largest node
+        heappush(nodes, -these_children[0])
+        heappushpop(nodes, -these_children[1])
+    label = np.zeros(n_leaves, dtype=np.intp)
+    for i, node in enumerate(nodes):
+        label[_hierarchical._hc_get_descendent(-node, children, n_leaves)] = i
+    return label
 
 # ----------------  kmeas++ ----------------------
 
@@ -419,14 +474,60 @@ class agg_clustering:
         self.dist_threshold = dist_threshold
         self.n_cluster = n_cluster
         self.trainer = AgglomerativeClustering(n_clusters = self.n_cluster, affinity=self.aff, linkage=self.link, distance_threshold=self.dist_threshold)
+        self.inconsistency = []
     
 
     def fit(self, X):
-        labels = self.trainer.fit_predict(X)
-        return labels
+        # labels = self.trainer.fit_predict(X)
+        self.trainer.fit(X)
+        self.get_inconsistency()  
+        inc = self.inconsistency
+        n_clusters = np.count_nonzero(np.array(self.inconsistency) >= self.dist_threshold) + 1
+        _children = self.trainer.children_
+        _n_leaves = self.trainer.n_leaves_
+        _labels = _hc_cut(n_clusters, _children, _n_leaves)
+
+
+        return _labels, inc
     
+
+    def get_inconsistency(self):
+        '''compute inconsistency of each non-leaf node'''
+
+        n_samples = self.trainer.labels_.shape[0]
+        # non-leaf node has twi children
+        children = deepcopy(self.trainer.children_)
+        # each non-leaf node has a distanece(height)
+        distance = deepcopy(self.trainer.distances_)
+
+        for idx, child in enumerate(children):
+            q = queue.Queue()
+            q.put(child[0])
+            q.put(child[1])
+            h = distance[idx]
+            H = []
+            while not q.empty():
+                c = q.get()
+                if c < n_samples: 
+                    H.append(0.0)
+                    continue
+                n_idx = c - n_samples
+                H.append(distance[n_idx])
+                q.put(children[n_idx][0])
+                q.put(children[n_idx][1])
+            
+            # if len(H) <= 1: continue
+            # std = np.sqrt(np.var(H) * len(H) / (len(H) - 1))
+            std = np.std(H, ddof = 1)
+            if std == 0: inc = .0
+            else: inc = (h - np.mean(H)) / std
+            
+            self.inconsistency.append(inc)
+        return self
+
     def cluster_merge(self, X, labels, threshold = 0.001):
-        # cluster merge from nsdi22
+
+        '''cluster merge from nsdi22'''
         
         res = labels
         tmp_labels = deepcopy(labels)
