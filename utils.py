@@ -5,13 +5,15 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 import pickle
+import scipy
+import seaborn as sns
 from itertools import cycle
 from sklearn.manifold import TSNE
 from sklearn.decomposition import TruncatedSVD, FastICA, PCA, NMF
 
 
 
-__all__ = ['read_data', 'log_scale', 'std_scale', '_ica', '_tsne', '_truncatedSVD', '_nmf', 'plot_res', 'pca', '_pca']
+__all__ = ['read_data', 'log_scale', 'std_scale', '_ica', '_tsne', '_truncatedSVD', '_nmf', 'plot_res', 'pca', '_pca', 'inc_knee']
 
 def read_data(file_path):
     with open(file_path, "rb") as f:
@@ -139,8 +141,16 @@ def plot_res(X = None, label = None, K = 3, tsne = False, save = False, alg=None
     if not save: plt.show()
     else: plt.savefig('fig/'+alg+str(K)+'.png')
 
+def inc_knee(inc):
+    '''
+    plot CDF of inconsistency
+    '''
+    norm_cdf = scipy.stats.norm.cdf(inc)
+    sns.lineplot(inc, norm_cdf)
+    plt.hist(inc, bins=10000 ,cumulative=True, histtype='step', density=True)
+    plt.show()
+
 def elbow_method(cost, K):
     k = None
-
     return k
 
