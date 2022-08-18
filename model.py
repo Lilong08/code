@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-from asyncore import dispatcher_with_send
-from dis import dis
-# from math import dist
 import queue
-from joblib import parallel_backend
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.cluster import AgglomerativeClustering
@@ -14,58 +10,12 @@ import random
 import time
 from copy import deepcopy
 import warnings
-
 from heapq import heapify, heappop, heappush, heappushpop
-import _hierarchical_fast as _hierarchical  # type: ignore
+import _hierarchical_fast as _hierarchical
+from utils import _hc_cut, cluster_merge
 
-
-def _hc_cut(n_clusters, children, n_leaves):
-
-    """Function cutting the ward tree for a given number of clusters.
-
-    Parameters
-    ----------
-    n_clusters : int or ndarray
-        The number of clusters to form.
-
-    children : ndarray of shape (n_nodes-1, 2)
-        The children of each non-leaf node. Values less than `n_samples`
-        correspond to leaves of the tree which are the original samples.
-        A node `i` greater than or equal to `n_samples` is a non-leaf
-        node and has children `children_[i - n_samples]`. Alternatively
-        at the i-th iteration, children[i][0] and children[i][1]
-        are merged to form node `n_samples + i`.
-
-    n_leaves : int
-        Number of leaves of the tree.
-
-    Returns
-    -------
-    labels : array [n_samples]
-        Cluster labels for each point.
-    """
-    if n_clusters > n_leaves:
-        raise ValueError(
-            "Cannot extract more clusters than samples: "
-            "%s clusters where given for a tree with %s leaves."
-            % (n_clusters, n_leaves)
-        )
-    # In this function, we store nodes as a heap to avoid recomputing
-    # the max of the nodes: the first element is always the smallest
-    # We use negated indices as heaps work on smallest elements, and we
-    # are interested in largest elements
-    # children[-1] is the root of the tree
-    nodes = [-(max(children[-1]) + 1)]
-    for _ in range(n_clusters - 1):
-        # As we have a heap, nodes[0] is the smallest element
-        these_children = children[-nodes[0] - n_leaves]
-        # Insert the 2 children and remove the largest node
-        heappush(nodes, -these_children[0])
-        heappushpop(nodes, -these_children[1])
-    label = np.zeros(n_leaves, dtype=np.intp)
-    for i, node in enumerate(nodes):
-        label[_hierarchical._hc_get_descendent(-node, children, n_leaves)] = i
-    return label
+from scipy.cluster.hierarchy import linkage
+from scipy.cluster.hierarchy import inconsistent
 
 # ----------------  kmeas++ ----------------------
 
@@ -478,24 +428,24 @@ class agg_clustering:
     
 
     def fit(self, X):
-        # labels = self.trainer.fit_predict(X)
+        labels = self.trainer.fit_predict(X)
         self.trainer.fit(X)
-        self.get_inconsistency()  
-        inc = self.inconsistency
-        n_clusters = np.count_nonzero(np.array(self.inconsistency) >= self.dist_threshold) + 1
-        _children = self.trainer.children_
-        _n_leaves = self.trainer.n_leaves_
-        _labels = _hc_cut(n_clusters, _children, _n_leaves)
-
-
-        return _labels, inc
+        dist = self.trainer.distances_
+        # self.get_inconsistency()  
+        # inc = self.inconsistency
+        # n_clusters = np.count_nonzero(np.array(self.inconsistency) >= self.dist_threshold) + 1
+        # _children = self.trainer.children_
+        # _n_leaves = self.trainer.n_leaves_
+        # _labels = _hc_cut(n_clusters, _children, _n_leaves)
+        # return _labels, inc, _children, n_clusters, dist
+        return labels, dist
     
 
     def get_inconsistency(self):
         '''compute inconsistency of each non-leaf node'''
 
         n_samples = self.trainer.labels_.shape[0]
-        # non-leaf node has twi children
+        # non-leaf node has two children
         children = deepcopy(self.trainer.children_)
         # each non-leaf node has a distanece(height)
         distance = deepcopy(self.trainer.distances_)
@@ -508,8 +458,8 @@ class agg_clustering:
             H = []
             while not q.empty():
                 c = q.get()
-                if c < n_samples: 
-                    H.append(0.0)
+                if c < n_samples:
+                    # H.append(0.0)
                     continue
                 n_idx = c - n_samples
                 H.append(distance[n_idx])
@@ -518,54 +468,18 @@ class agg_clustering:
             
             # if len(H) <= 1: continue
             # std = np.sqrt(np.var(H) * len(H) / (len(H) - 1))
+            if len(H) == 1: 
+                self.inconsistency.append(h - H[0])
+                continue
+            if len(H) == 0:
+                self.inconsistency.append(.0)
+                continue
             std = np.std(H, ddof = 1)
             if std == 0: inc = .0
             else: inc = (h - np.mean(H)) / std
             
             self.inconsistency.append(inc)
         return self
-
-    def cluster_merge(self, X, labels, threshold = 0.001):
-
-        '''cluster merge from nsdi22'''
-        
-        res = labels
-        tmp_labels = deepcopy(labels)
-        cnt = 0
-        while (True):
-            labels_ = np.unique(tmp_labels)
-            centeroid = []
-            mapping = {}
-            for idx, i in enumerate(labels_):
-                # calculate the centroid of each cluster
-                centeroid.append(np.mean(X[np.where(tmp_labels == i)[0]], axis = 0))
-                mapping[idx] = i
-                
-            center = np.array(centeroid)
-            
-            # distance matrix size = (n, n)
-            # n = center.shape[0]
-            distance = pairwise_distances(center, metric = 'cosine')
-            for i in range(distance.shape[0]):
-                distance[i, i] = np.inf
-            
-            # size = (n, )
-            value_min = np.min(distance, axis = 1)
-            if(np.min(value_min) > threshold): break
-            
-            idx_min = np.argmin(distance, axis = 1)
-            x = np.argmin(value_min)
-            y = idx_min[x]
-            x_label = mapping[x]
-            y_label = mapping[y]
-            
-            # merge cluste x to y
-            tmp_labels[np.where(tmp_labels == x_label)[0]] = y_label
-            res = tmp_labels
-            cnt += 1
-
-        print("%d cluster(s) merged"%cnt)    
-        return res
 
     def plot_res(self, X, labels):
         # plot the result
@@ -583,3 +497,21 @@ class agg_clustering:
             plt.plot(x, y, col+'.')
         plt.title('euclidean-ward')
         plt.show()
+
+
+class _linkage:
+    '''Hierarchical clustering from scipy'''
+    def __init__(self, inc_threshold, method = 'ward'):
+        self.inc_threshold = inc_threshold
+        self.method = method
+
+    def fit(self, X):
+        
+        n_leaves = X.shape[0]
+        Z = linkage(X, self.method)
+        inc = inconsistent(Z, d=20)[:, -1]
+        children = np.array(Z[:, :2], dtype = np.intp)
+        n_clusters = np.count_nonzero(np.array(inc) >= self.inc_threshold) + 1
+        labels = _hc_cut(n_clusters, children, n_leaves)
+        return labels, inc
+    
