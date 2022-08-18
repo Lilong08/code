@@ -10,10 +10,11 @@ import seaborn as sns
 from itertools import cycle
 from sklearn.manifold import TSNE
 from sklearn.decomposition import TruncatedSVD, FastICA, PCA, NMF
+from sklearn.metrics import pairwise_distances
 
 
 
-__all__ = ['read_data', 'log_scale', 'std_scale', '_ica', '_tsne', '_truncatedSVD', '_nmf', 'plot_res', 'pca', '_pca', 'inc_knee']
+__all__ = ['read_data', 'log_scale', 'std_scale', '_ica', '_tsne', '_truncatedSVD', '_nmf', 'plot_res', 'pca', '_pca', 'knee', '_hc_cut', 'cluster_merge']
 
 def read_data(file_path):
     with open(file_path, "rb") as f:
@@ -114,7 +115,7 @@ def pca(data, n_dim):
     data_ndim = np.dot(data, picked_eig_vector)
     return data_ndim
 
-def plot_res(X = None, label = None, K = 3, tsne = False, save = False, alg=None):
+def plot_res(X = None, label = None, K = 3, tsne = False, save = False, alg=None, show=False):
     '''
     plot the clustering results
     X: input data, size = (n_samples, n_features)
@@ -138,19 +139,112 @@ def plot_res(X = None, label = None, K = 3, tsne = False, save = False, alg=None
         
         x, y = data[:, 0], data[:, 1]
         ax.scatter(x, y, c = color, marker = sp)
-    if not save: plt.show()
-    else: plt.savefig('fig/'+alg+str(K)+'.png')
+    if show: plt.show()
+    if save: plt.savefig('fig/'+alg+str(K)+'.png')
 
-def inc_knee(inc):
+
+
+def _hc_cut(n_clusters, children, n_leaves):
+    from heapq import heapify, heappop, heappush, heappushpop
+    import _hierarchical_fast as _hierarchical  # type: ignore
+    """Function cutting the ward tree for a given number of clusters.
+
+    Parameters
+    ----------
+    n_clusters : int or ndarray
+        The number of clusters to form.
+
+    children : ndarray of shape (n_nodes-1, 2)
+        The children of each non-leaf node. Values less than `n_samples`
+        correspond to leaves of the tree which are the original samples.
+        A node `i` greater than or equal to `n_samples` is a non-leaf
+        node and has children `children_[i - n_samples]`. Alternatively
+        at the i-th iteration, children[i][0] and children[i][1]
+        are merged to form node `n_samples + i`.
+
+    n_leaves : int
+        Number of leaves of the tree.
+
+    Returns
+    -------
+    labels : array [n_samples]
+        Cluster labels for each point.
+    """
+    if n_clusters > n_leaves:
+        raise ValueError(
+            "Cannot extract more clusters than samples: "
+            "%s clusters where given for a tree with %s leaves."
+            % (n_clusters, n_leaves)
+        )
+    # In this function, we store nodes as a heap to avoid recomputing
+    # the max of the nodes: the first element is always the smallest
+    # We use negated indices as heaps work on smallest elements, and we
+    # are interested in largest elements
+    # children[-1] is the root of the tree
+
+    # node is a minimum heap
+    # heap top is the largest node(-value)
+    nodes = [-(max(children[-1]) + 1)]
+    for _ in range(n_clusters - 1):
+        # As we have a heap, nodes[0] is the smallest element
+        these_children = children[-nodes[0] - n_leaves]
+        # Insert the 2 children and remove the largest node
+        heappush(nodes, -these_children[0])
+        heappushpop(nodes, -these_children[1])
+    label = np.zeros(n_leaves, dtype=np.intp)
+    for i, node in enumerate(nodes):
+        label[_hierarchical._hc_get_descendent(-node, children, n_leaves)] = i
+    return label
+
+def knee(data):
     '''
     plot CDF of inconsistency
+    inc: np.ndarry or List
     '''
-    norm_cdf = scipy.stats.norm.cdf(inc)
-    sns.lineplot(inc, norm_cdf)
-    plt.hist(inc, bins=10000 ,cumulative=True, histtype='step', density=True)
+    norm_cdf = scipy.stats.norm.cdf(data)
+    sns.lineplot(data, norm_cdf)
+    plt.hist(data, bins=10000 ,cumulative=True, histtype='step', density=True)
     plt.show()
 
-def elbow_method(cost, K):
-    k = None
-    return k
+def cluster_merge(X, labels, threshold = 0.001):
+
+    '''cluster merge from nsdi22'''
+    
+    res = labels
+    tmp_labels = deepcopy(labels)
+    cnt = 0
+    while (True):
+        labels_ = np.unique(tmp_labels)
+        centeroid = []
+        mapping = {}
+        for idx, i in enumerate(labels_):
+            # calculate the centroid of each cluster
+            centeroid.append(np.mean(X[np.where(tmp_labels == i)[0]], axis = 0))
+            mapping[idx] = i
+                
+        center = np.array(centeroid)
+        
+        # distance matrix size = (n, n)
+        # n = center.shape[0]
+        distance = pairwise_distances(center, metric = 'cosine')
+        for i in range(distance.shape[0]):
+            distance[i, i] = np.inf
+            
+        # size = (n, )
+        value_min = np.min(distance, axis = 1) 
+        if(np.min(value_min) > threshold): break
+            
+        idx_min = np.argmin(distance, axis = 1)
+        x = np.argmin(value_min)
+        y = idx_min[x]
+        x_label = mapping[x]
+        y_label = mapping[y]
+            
+        # merge cluste x to y
+        tmp_labels[np.where(tmp_labels == x_label)[0]] = y_label
+        res = tmp_labels
+        cnt += 1
+
+    print("%d cluster(s) merged"%cnt)    
+    return res
 
