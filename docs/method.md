@@ -330,14 +330,7 @@ we find the matrix from the dataset is sparse
   cosine
 
 #### homogeneity and completeness
-$$h=1-\frac{H(C|K)}{H(C)}
-\\
-c =1 - \frac{H(K|C)}{H(K)}
-\\
-H(C)=-\sum_{c=1}^{|C|}{\frac{n_c}{n}\timeslog(\frac{n_c}{n})})
-\\
-$$
-
+[from this blog](https://www.cnblogs.com/zhumengke/articles/12416525.html)
 
 
 #### a k-medoids method:
